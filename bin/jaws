@@ -134,6 +134,10 @@ program
       execute(runner.run(JAWS));
     });
 
+function _optionList(val) {
+  return val.split(',')
+}
+
 program
     .command('module <cmd> [params]')
     .description('aws-module commands\n\nValid <cmd>\'s: create' +
@@ -145,7 +149,9 @@ program
     .option('-r, --runtime', '[create]: lambda runtime. Valid: nodejs')
     .option('-p, --package-manager <pm>',
             '[create]: Select package manager used when creating awsm for publishing. Valid options: npm')
-    .option('-m, --method <method>', '[create]: API Gateway HTTP method. E.g. GET, POST, PUT, etc. Default is GET.')
+    .option('-m, --method <method>', '[create]: API Gateway HTTP method. E.g. GET, POST, PUT, etc. Default is GET')
+    .option('--path <path>', '[create]: API Gateway Path. E.g. "/api/v1/users/{id}". Default is {module}/{action}')
+    .option('--query-params <a,b,c>', '[create]: Comma separated list of URL query parameters', _optionList)
     .action(function(cmd, params, options) {
 
       var theParams = process.argv.slice(3);
@@ -163,21 +169,17 @@ program
           throw new JawsError('Please specify awsm resource and action name');
         }
 
-        var theCmd = require('../lib/commands/module_create'),
-            name = theParams[1],
-            action = theParams[2],
-            runtime = options.runtime || 'nodejs',
-            pkgMgr = options.packageManager || false,
-            modType = 'both',
-            httpMethod = options.method || 'GET';
-
         if (options.lambda) {
-          modType = 'lambda';
+          options.moduleType = 'lambda';
         } else if (options.endpoint) {
-          modType = 'endpoint';
+          options.moduleType = 'endpoint';
         }
 
-        execute(theCmd.run(JAWS, name, action, runtime, pkgMgr, modType, httpMethod));
+        var theCmd = require('../lib/commands/module_create'),
+            name = theParams[1],
+            action = theParams[2];
+
+        execute(theCmd.run(JAWS, name, action, options));
       } else {
         console.error('Unsupported cmd ' + cmd + '. Must be install|update|create');
         process.exit(1);
